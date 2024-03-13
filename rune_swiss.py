@@ -1,4 +1,5 @@
-#!/usr/bin/env python3                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               #!/usr/bin/env python3
+#!/usr/bin/env python3
+
 import sys
 import argparse
 
@@ -14,6 +15,7 @@ parser.add_argument('-c', '--caesar-encrypt', metavar=('TEXT', 'SHIFT'), nargs=2
 parser.add_argument('-d', '--caesar-decrypt', metavar=('RUNES', 'SHIFT'), nargs=2, help='Decrypt runes with Caesar cipher')
 parser.add_argument('-p', '--playfair', metavar=('TEXT', 'KEYWORD'), nargs=2, help='Encrypt/Decrypt text with Playfair cipher')
 parser.add_argument('-b', '--brute-force', metavar='RUNES', help='Attempt brute force decryption on runes')
+parser.add_argument('-f', '--frequency-analysis', metavar='CIPHERTEXT', help='Perform frequency analysis on the ciphertext')
 # ... Add more arguments as needed
 
 # Parse the arguments
@@ -50,27 +52,13 @@ def calculate_frequencies(text):
     # Convert counts to percentages
     frequencies = {letter: count / total for letter, count in frequencies.items()}
     return frequencies
-    
+
 import itertools
 import string
 from sympy import isprime, primerange
 from nltk.corpus import words
 from nltk.metrics.distance import edit_distance
 from math import gcd
-import argparse
-
-# Create the parser
-parser = argparse.ArgumentParser(description='Rune Cipher Swiss Army Knife')
-
-# ... (add other arguments you already have)
-
-# Add an argument for frequency analysis
-parser.add_argument('-f', '--frequency-analysis', metavar='CIPHERTEXT', help='Perform frequency analysis on the ciphertext')
-
-# ... (add any other arguments you want to include)
-
-# Parse the arguments
-args = parser.parse_args()
 
 def get_multiline_input(prompt):
     print(prompt)
@@ -112,9 +100,13 @@ def print_usage_guide():
     print("4. Decrypt Runes with Vigenère Cipher: Provide runes and a key to decrypt using the Vigenère cipher.")
     print("5. Encrypt Text with Caesar Cipher: Provide text and a shift value to encrypt using the Caesar cipher.")
     print("6. Decrypt Text with Caesar Cipher: Provide encrypted text and a shift value to decrypt.")
-    print("7. Encrypt/Decrypt Text with Playfair Cipher: Provide text and a keyword for the Playfair cipher.")
-    print("8. Brute-force Decryption: Provide runes to attempt brute-force decryption.")
-    print("9. Frequency Analysis: Provide ciphertext to analyze the frequency of letters.")
+    print("7. Encrypt Text with Playfair Cipher: Provide text and a keyword for the Playfair cipher.")
+    print("8. Decrypt Text with Playfair Cipher: Provide text and a keyword for the Playfair cipher.")
+    print("9. Brute-force Decryption with Prime Shifts: Provide runes to attempt brute-force decryption.")
+    print("10. Brute-force Decryption with User-Provided Key (Vigenère Cipher): Provide runes and a key to decrypt using the Vigenère cipher.")
+    print("11. Attempt All Brute Force Methods (Decryption): Provide runes to attempt all brute force decryption methods.")
+    print("12. Perform Frequency Analysis on Ciphertext")
+    print("13. Attempt All Brute Force Methods with Primes (Decryption)")
     print("\nYou can also use command-line arguments to directly perform operations without the interactive menu.")
     print("For example:")
     print("python rune_cipher_tool.py --transliterate 'Hello World'")
@@ -131,7 +123,7 @@ def frequency_analysis(ciphertext):
     print("Letter frequencies in the ciphertext:")
     for letter, frequency in sorted_frequencies:
         print(f"{letter}: {frequency:.2%}")
-        
+
 # Function to transliterate text to runes
 def transliterate_to_futhark(text):
     # Create the reverse mapping from English to runes
@@ -352,6 +344,9 @@ def englishness_score(text):
 def best_match(word, vocab):
     return min(vocab, key=lambda w: edit_distance(word, w))
 
+# List of all decryption methods
+decryption_methods = [decrypt_atbash, decrypt_vigenere, decrypt_caesar, decrypt_playfair]
+
 # Brute-force function to try all ciphers with prime shifts
 def brute_force_decrypt(runes, key=None, keyword=None):
     # Transliterate runes to English and print the transliteration
@@ -419,131 +414,231 @@ def attempt_all_brute_force(runes):
     best_result = min(possible_results, key=lambda x: englishness_score(x[0]), default=("No coherent result found", "None", None))
     return best_result
 
+import tkinter as tk
+from tkinter import scrolledtext
+
+class TextHandler(object):
+    def __init__(self, widget):
+        self.widget = widget
+
+    def write(self, text):
+        self.widget.insert(tk.END, text)
+        self.widget.see(tk.END)  # Scroll the Text widget to show the latest output
+
+    def flush(self):
+        pass  # Add this method
+
+def main_gui():
+    # Create a new window
+    window = tk.Tk()
+    window.title("Rune Cipher Swiss Army Knife")
+
+    # Add a scrolled text box that will display the script output
+    output_box = scrolledtext.ScrolledText(window, width=50, height=10)
+    output_box.pack()
+
+    # Create a TextHandler instance for the output box
+    text_handler = TextHandler(output_box)
+
+    # Modify the main function to write its output to the text box
+    def main_output():
+        # Redirect standard output to the text box
+        sys.stdout = text_handler
+        # Call the main function
+        main()
+        # Redirect standard output back to the console
+        sys.stdout = sys.__stdout__
+
+    # Add a button that calls the main_output function when clicked
+    button = tk.Button(window, text="Run", command=main_output)
+    button.pack()
+
+    # Run the GUI loop
+    window.mainloop()
+
 # Main function with additional brute-force option
 def main():
-# Check if any arguments were provided
-    if args.transliterate:
-        result = transliterate_to_futhark(args.transliterate)
-        print(f"Transliterated text: {result}")
-    
-    elif args.reverse_transliterate:
-        english_text, decimal_values = transliterate_and_convert(args.reverse_transliterate)
-        print(f"Transliterated English text: {english_text}")
-        print(f"Decimal values: {' '.join(decimal_values)}")
-    
-    elif args.atbash:
-        runes, shift = args.atbash
-        result = decrypt_atbash(runes, int(shift))
-        print(f"Decrypted text: {result}")
-    # ... Handle other arguments similarly
+    # Print the usage guide at the start of the program
+    print_usage_guide()
 
-    # If no command-line arguments were provided, print the usage guide and show the menu
-    if len(sys.argv) == 1:
-        print_usage_guide()
-        
+    if len(sys.argv) > 1:
+        if args.transliterate:
+            result = transliterate_to_futhark(args.transliterate)
+            print(f"Transliterated text: {result}")
+
+        elif args.frequency_analysis:
+            frequency_analysis(args.frequency_analysis)
+
+        elif args.reverse_transliterate:
+            english_text, decimal_values = transliterate_and_convert(args.reverse_transliterate)
+            print(f"Transliterated English text: {english_text}")
+            print(f"Decimal values: {' '.join(decimal_values)}")
+
+        elif args.atbash:
+            runes, shift = args.atbash
+            result = decrypt_atbash(runes, int(shift))
+            print(f"Decrypted text: {result}")
+        # ... Handle other arguments similarly
+
     else:
-        # If no arguments were provided, show the menu as before
-    print("Welcome to the Rune Cipher Swiss Army Knife!")
-    print("Choose an operation from the following options:")
-    print("1 - Transliterate English to Runes (Transliteration)")
-    print("2 - Transliterate Runes to English")
-    print("3 - Decrypt Runes with Atbash Cipher (Decryption)")
-    print("4 - Decrypt Runes with Vigenère Cipher (Decryption)")
-    print("5 - Encrypt Text with Caesar Cipher (Encryption)")
-    print("6 - Decrypt Text with Caesar Cipher (Decryption)")
-    print("7 - Encrypt Text with Playfair Cipher (Encryption)")
-    print("8 - Decrypt Text with Playfair Cipher (Decryption)")
-    print("9 - Brute-force Decryption with Prime Shifts (Decryption)")
-    print("10 - Brute-force Decryption with User-Provided Key (Vigenère Cipher)")
-    print("11 - Attempt All Brute Force Methods (Decryption)")
-    choice = input("Enter your choice (1-11): ")
-    
-    elif args.frequency_analysis:
-        frequency_analysis(args.frequency_analysis)
-    
-    if choice == '1':
-        text = get_multiline_input("Enter the English text to transliterate to runes (end with an empty line):")
-        result = transliterate_to_futhark(text)
-        print(f"Transliterated text: {result}")
-    
-    elif choice == '2':
-        runes = get_multiline_input("Enter the runes to transliterate to English (end with an empty line):")
-        english_text, decimal_values = transliterate_and_convert(runes)
-        print(f"Transliterated English text: {english_text}")
-        print(f"Decimal values: {' '.join(decimal_values)}")
+        while True:
+            # Show the menu
+            print("Welcome to the Rune Cipher Swiss Army Knife!")
+            print("Choose an operation from the following options:")
+            print("1 - Transliterate English to Runes (Transliteration)")
+            print("2 - Transliterate Runes to English")
+            print("3 - Decrypt Runes with Atbash Cipher (Decryption)")
+            print("4 - Decrypt Runes with Vigenère Cipher (Decryption)")
+            print("5 - Encrypt Text with Caesar Cipher (Encryption)")
+            print("6 - Decrypt Text with Caesar Cipher (Decryption)")
+            print("7 - Encrypt Text with Playfair Cipher (Encryption)")
+            print("8 - Decrypt Text with Playfair Cipher (Decryption)")
+            print("9 - Brute-force Decryption with Prime Shifts (Decryption)")
+            print("10 - Brute-force Decryption with User-Provided Key (Vigenère Cipher)")
+            print("11 - Attempt All Brute Force Methods (Decryption)")
+            print("12 - Perform Frequency Analysis on Ciphertext")
+            print("13 - Attempt All Brute Force Methods with Primes (Decryption)")
+            choice = input("Enter your choice (1-13): ")
+            if choice == 'q':
+                break  # Exit the loop to end the program
 
-    elif choice == '3':
-        runes = input("Enter the runes to decrypt with Atbash: ")
-        try:
-            shift = int(input("Enter the shift amount (0-28): "))
-            if not 0 <= shift <= 28:
-                raise ValueError("Shift must be between 0 and 28.")
-            result = decrypt_atbash(runes, shift)
-            print(f"Decrypted text: {result}")
-        except ValueError as e:
-            print(f"Invalid input: {e}")
+            # Use a dialog box to get the user's choice
+#            choice = sd.askstring("Input", "Enter your choice (1-13): ")
 
-    elif choice == '4':
-        runes = input("Enter the runes to decrypt with Vigenère: ")
-        key = input("Enter the Vigenère key (in runes): ")
-        skip_indices_input = input("Enter indices to skip (comma-separated, no spaces): ")
-        skip_indices = [int(index) for index in skip_indices_input.split(',')]
-        result = decrypt_vigenere(runes, key, skip_indices)
-        print(f"Decrypted text: {result}")
 
-    elif choice == '5':
-        text = input("Enter the text to encrypt with Caesar: ")
-        try:
-            shift = int(input("Enter the shift amount (0-25): "))
-            if not 0 <= shift <= 25:
-                raise ValueError("Shift must be between 0 and 25.")
-            result = encrypt_caesar(text, shift)
-            print(f"Encrypted text: {result}")
-        except ValueError as e:
-            print(f"Invalid input: {e}")
+            elif choice == '1':
+                text = get_multiline_input("Enter the English text to transliterate to runes: ")
+                result = transliterate_to_futhark(text)
+                print(f"Transliterated text: {result}")
 
-    elif choice == '6':
-        runes = input("Enter the runes to decrypt with Caesar: ")
-        try:
-            shift = int(input("Enter the shift amount (0-25): "))
-            if not 0 <= shift <= 25:
-                raise ValueError("Shift must be between 0 and 25.")
-            result = decrypt_caesar(runes, shift)
-            print(f"Decrypted text: {result}")
-        except ValueError as e:
-            print(f"Invalid input: {e}")
+            elif choice == '2':
+                runes = get_multiline_input("Enter the runes to transliterate to English (end with an empty line):")
+                english_text, decimal_values = transliterate_and_convert(runes)
+                print(f"Transliterated English text: {english_text}")
 
-    elif choice == '7':
-        text = get_multiline_input("Enter the text to encrypt with Playfair: ")
-        keyword = input("Enter the keyword for the Playfair cipher: ")
-        result = encrypt_playfair(text, keyword)
-        print(f"Encrypted text: {result}")
+            elif choice == '3':
+                runes = get_multiline_input("Enter the runes to decrypt with Atbash: ")
+                try:
+                    shift = int(input("Enter the shift amount (0-28): "))
+                    if not 0 <= shift <= 28:
+                        raise ValueError("Shift must be between 0 and 28.")
+                    result = decrypt_atbash(runes, shift)
+                    print(f"Decrypted text: {result}")
+                except ValueError as e:
+                    print(f"Invalid input: {e}")
 
-    elif choice == '8':
-        runes = get_multiline_input("Enter the runes to decrypt with Playfair: ")
-        keyword = input("Enter the keyword for the Playfair cipher: ")
-        result = decrypt_playfair(runes, keyword)
-        print(f"Decrypted text: {result}")
+            elif choice == '4':
+                runes = get_multiline_input("Enter the runes to decrypt with Vigenère: ")
+                key = input("Enter the Vigenère key (in runes): ")
+                skip_indices_input = input("Enter indices to skip (comma-separated, no spaces): ")
+                skip_indices = [int(index) for index in skip_indices_input.split(',')]
+                result = decrypt_vigenere(runes, key, skip_indices)
+                print(f"Decrypted text: {result}")
 
-    elif choice == '9':
-        runes = get_multiline_input("Enter the runes to decrypt: ")
-        key = input("Enter the Vigenère key (in runes), or press Enter to skip: ")
-        keyword = input("Enter the Playfair keyword (in English), or press Enter to skip: ")
-        if keyword and not all(char in rune_to_decimal for char in keyword):
-            keyword = transliterate_to_futhark(keyword)
-        result, cipher, detail = brute_force_decrypt(runes, key, keyword)
-        print(f"Decrypted message: {result}")
-        print(f"Method used: {cipher}")
-        print(f"Detail (shift, key, or keyword): {detail}")
+            elif choice == '5':
+                text = get_multiline_input("Enter the text to encrypt with Caesar: ")
+                try:
+                    shift = int(input("Enter the shift amount (0-25): "))
+                    if not 0 <= shift <= 25:
+                        raise ValueError("Shift must be between 0 and 25.")
+                    result = encrypt_caesar(text, shift)
+                    print(f"Encrypted text: {result}")
+                except ValueError as e:
+                    print(f"Invalid input: {e}")
 
-    elif choice == '10':
-        runes = get_multiline_input("Enter the runes to decrypt: ")
-        key = input("Enter your key (in English or runes): ")
-        if not all(char in rune_to_decimal for char in key):
-            key = transliterate_to_futhark(key)
-        result = decrypt_vigenere(runes, key, [])
-        print(f"Decrypted text: {result}")
+            elif choice == '6':
+                runes = get_multiline_input("Enter the runes to decrypt with Caesar: ")
+                try:
+                    shift = int(input("Enter the shift amount (0-25): "))
+                    if not 0 <= shift <= 25:
+                        raise ValueError("Shift must be between 0 and 25.")
+                    result = decrypt_caesar(runes, shift)
+                    print(f"Decrypted text: {result}")
+                except ValueError as e:
+                    print(f"Invalid input: {e}")
+
+            elif choice == '7':
+                text = get_multiline_input("Enter the text to encrypt with Playfair: ")
+                keyword = input("Enter the keyword for the Playfair cipher: ")
+                result = encrypt_playfair(text, keyword)
+                print(f"Encrypted text: {result}")
+
+            elif choice == '8':
+                runes = get_multiline_input("Enter the runes to decrypt with Playfair: ")
+                keyword = input("Enter the keyword for the Playfair cipher: ")
+                result = decrypt_playfair(runes, keyword)
+                print(f"Decrypted text: {result}")
+
+            elif choice == '9':
+                runes = get_multiline_input("Enter the runes to decrypt: ")
+                key = input("Enter the Vigenère key (in runes), or press Enter to skip: ")
+                keyword = input("Enter the Playfair keyword (in English), or press Enter to skip: ")
+                if keyword and not all(char in rune_to_decimal for char in keyword):
+                    keyword = transliterate_to_futhark(keyword)
+                result, cipher, detail = brute_force_decrypt(runes, key, keyword)
+                print(f"Decrypted message: {result}")
+                print(f"Method used: {cipher}")
+                print(f"Detail (shift, key, or keyword): {detail}")
+
+            elif choice == '10':
+                runes = get_multiline_input("Enter the runes to decrypt: ")
+                key = input("Enter your key (in English or runes): ")
+                if not all(char in rune_to_decimal for char in key):
+                    key = transliterate_to_futhark(key)
+                result = decrypt_vigenere(runes, key, [])
+                print(f"Decrypted text: {result}")
+
+            elif choice == '11':
+                runes = get_multiline_input("Enter the runes to decrypt: ")
+                possible_results = attempt_all_brute_force(runes)
+                print(possible_results)  # Add this line here
+                for result in possible_results:
+                    if result is not None and len(result) == 3:
+                        result, cipher, shift = result
+                        print(f"Decrypted message: {result}")
+                        print(f"Method used: {cipher}")
+                        print(f"Shift: {shift}")
+                    else:
+                        print(result)
+
+            elif choice == '12':
+                runes = get_multiline_input("Enter the runes to decrypt: ")
+                ciphertext = input("Enter the ciphertext to analyze: ")
+                frequency_analysis(ciphertext)
+
+            elif choice == '13':
+                runes = get_multiline_input("Enter the runes to decrypt: ")
+                primes = generate_primes(0, 100)  # Generate prime numbers for shifts
+                for prime in primes:
+                    totient = euler_totient(prime)
+                    print(f"Trying prime {prime} with Euler's totient {totient}:")
+                    for decrypt_method in decryption_methods:
+                        # Assuming transliterate_futhark is defined elsewhere
+                        transliterated_text = transliterate_futhark(runes)
+                        if decrypt_method == decrypt_vigenere:
+                            # Convert prime to a string
+                            prime_str = str(prime)
+                            decrypted_result = decrypt_method(transliterated_text, prime_str, [])
+                        elif decrypt_method == decrypt_playfair:
+                            # Convert prime to a string
+                            prime_str = str(prime)
+                            decrypted_result = decrypt_method(transliterated_text, prime_str)
+                        else:
+                            decrypted_result = decrypt_method(transliterated_text, prime)
+                        # Assuming is_coherent is a function that checks if the result makes sense
+                        if is_coherent(decrypted_result):
+                            print(f"{decrypt_method.__name__} result is coherent: {decrypted_result}")
+                        else:
+                            print(f"{decrypt_method.__name__} result: {decrypted_result}")
 
 # Call the main function to start the program
 if __name__ == "__main__":
-    main()
+ # Ask the user which interface they want to use
+    interface = input("Do you want to use the GUI (G) or the command-line interface (C)? ")
+
+    if interface.lower() == 'g':
+        # If the user chose the GUI, call the main_gui function
+        main_gui()
+    else:
+        # If the user chose the command-line interface, or entered anything else, call the main function
+        main()
